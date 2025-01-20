@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -35,8 +34,8 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              child: SvgPicture.asset(
-                'assets/images/splashing.svg',
+              child: Image.asset(
+                'assets/images/splashing.jpg',
                 width: 100,
                 height: 100,
                 color: Colors.white,
