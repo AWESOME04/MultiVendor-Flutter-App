@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'notifications_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -44,7 +45,12 @@ class _SearchScreenState extends State<SearchScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              );
+            },
           ),
         ],
       ),

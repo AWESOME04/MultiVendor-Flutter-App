@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'notifications_screen.dart';
 import 'product_details_screen.dart';
 import 'search_screen.dart';
+import 'cart_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -198,6 +199,11 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const SearchScreen()),
+            );
+          } else if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CartScreen()),
             );
           }
         },
