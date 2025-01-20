@@ -1,4 +1,4 @@
-# flutter_application_1
+# MultiVendor_App
 
 A new Flutter project.
 
