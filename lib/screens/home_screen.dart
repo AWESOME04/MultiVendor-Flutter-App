@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'notifications_screen.dart';
 import 'product_details_screen.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -192,6 +193,14 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: 0,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SearchScreen()),
+            );
+          }
+        },
       ),
     );
   }
