@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'notifications_screen.dart';
+import 'product_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,6 +10,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String selectedCategory = 'All';
+
   @override
   void initState() {
     super.initState();
@@ -119,10 +122,10 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                _buildCategoryChip('All', true),
-                _buildCategoryChip('Electronics', false),
-                _buildCategoryChip('Fashion', false),
-                _buildCategoryChip('Shoes', false),
+                _buildCategoryChip('All'),
+                _buildCategoryChip('Electronics'),
+                _buildCategoryChip('Fashion'),
+                _buildCategoryChip('Shoes'),
               ],
             ),
           ),
@@ -193,81 +196,104 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoryChip(String label, bool isSelected) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: Chip(
-        label: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black,
+  Widget _buildCategoryChip(String label) {
+    final isSelected = selectedCategory == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedCategory = label;
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        child: Chip(
+          label: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black,
+            ),
           ),
+          backgroundColor: isSelected ? Colors.black : Colors.grey[100],
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
-        backgroundColor: isSelected ? Colors.black : Colors.grey[100],
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
   }
 
   Widget _buildProductCard(String title, int price, String imageUrl, {int? discount}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: Container(
-                color: Colors.white,
-                width: double.infinity,
-                child: Image.asset(
-                  imageUrl,
-                  fit: BoxFit.cover,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailsScreen(
+              title: title,
+              imageUrl: imageUrl,
+              price: price,
+              discount: discount,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                child: Container(
+                  color: Colors.white,
+                  width: double.infinity,
+                  child: Image.asset(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      '\$${price.toString()}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
-                    if (discount != null) ...[
-                      const SizedBox(width: 8),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
                       Text(
-                        '-${discount}%',
+                        '\$${price.toString()}',
                         style: const TextStyle(
-                          color: Colors.red,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      if (discount != null) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '-${discount}%',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
