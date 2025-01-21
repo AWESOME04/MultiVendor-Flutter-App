@@ -143,7 +143,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           borderRadius: BorderRadius.circular(12),
         ),
         leading: Image.asset(
-          'assets/images/$cardType.png',
+          'assets/images/visa.png',
           width: 40,
           height: 40,
         ),
