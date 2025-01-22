@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'main_screen.dart';
 import 'login_screen.dart';
-import 'home_screen.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
@@ -21,7 +21,6 @@ class AuthScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
               const Text(
                 'Let\'s create your account.',
                 style: TextStyle(
@@ -97,7 +96,7 @@ class AuthScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const HomeScreen()),
+                      MaterialPageRoute(builder: (context) => const MainScreen()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
