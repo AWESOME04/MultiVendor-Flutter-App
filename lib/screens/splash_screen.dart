@@ -48,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  'SHOPPY',
+                  'SHOP STOCK',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
