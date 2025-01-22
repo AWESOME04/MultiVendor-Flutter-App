@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
+import 'auth_screen.dart'; // Added import statement for AuthScreen
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
@@ -61,9 +62,7 @@ class OnboardingScreen extends StatelessWidget {
                           onPressed: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const HomeScreen(),
-                              ),
+                              MaterialPageRoute(builder: (context) => const AuthScreen()),
                             );
                           },
                           style: ElevatedButton.styleFrom(
