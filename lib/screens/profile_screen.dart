@@ -39,20 +39,20 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          ListTile(
-            leading: const Icon(Icons.email_outlined),
-            title: const Text('Email'),
-            subtitle: const Text('john.doe@example.com'),
+          const ListTile(
+            leading: Icon(Icons.email_outlined),
+            title: Text('Email'),
+            subtitle: Text('john.doe@example.com'),
           ),
-          ListTile(
-            leading: const Icon(Icons.phone_outlined),
-            title: const Text('Phone'),
-            subtitle: const Text('+1 234 567 890'),
+          const ListTile(
+            leading: Icon(Icons.phone_outlined),
+            title: Text('Phone'),
+            subtitle: Text('+1 234 567 890'),
           ),
-          ListTile(
-            leading: const Icon(Icons.location_on_outlined),
-            title: const Text('Address'),
-            subtitle: const Text('123 Main St, City, Country'),
+          const ListTile(
+            leading: Icon(Icons.location_on_outlined),
+            title: Text('Address'),
+            subtitle: Text('123 Main St, City, Country'),
           ),
           const SizedBox(height: 32),
           ElevatedButton(
