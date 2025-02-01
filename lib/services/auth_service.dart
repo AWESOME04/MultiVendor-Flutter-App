@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../services/user_service.dart';
 
 class AuthService {
   static const String baseUrl = 'http://localhost:8001';
@@ -24,6 +25,7 @@ class AuthService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
+        await handleAuthResponse(data, UserService());
         return data;
       } else {
         final data = jsonDecode(response.body);
@@ -50,6 +52,7 @@ class AuthService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
+        await handleAuthResponse(data, UserService());
         return data;
       } else {
         final data = jsonDecode(response.body);
@@ -118,5 +121,14 @@ class AuthService {
     } catch (e) {
       throw e.toString();
     }
+  }
+
+  Future<void> handleAuthResponse(
+      Map<String, dynamic> data, UserService userService) async {
+    await userService.setUserData(
+      token: data['token'],
+      userId: data['id'].toString(),
+      role: data['role'].toString().toUpperCase(),
+    );
   }
 }

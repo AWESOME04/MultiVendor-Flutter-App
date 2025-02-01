@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'onboarding_screen.dart';
+import 'package:provider/provider.dart';
+import '../services/user_service.dart';
+import 'auth_screen.dart';
+import 'main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,53 +15,37 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+    _checkAuthAndNavigate();
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    final userService = Provider.of<UserService>(context, listen: false);
+
+    // Wait until UserService is fully initialized
+    while (!userService.isInitialized) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    if (userService.isAuthenticated) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainScreen()),
       );
-    });
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const AuthScreen()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Background Element
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/Element.png',
-              fit: BoxFit.cover,
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Image.asset(
-                    'assets/images/splashing.png',
-                    width: 100,
-                    height: 100,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'SHOP STOCK',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
       ),
     );
   }

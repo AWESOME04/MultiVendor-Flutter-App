@@ -59,7 +59,8 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('"SHOP STOCK" Would Like To Send You Notifications'),
+          title:
+              const Text('"SHOP STOCK" Would Like To Send You Notifications'),
           content: const Text(
             'Notifications may include alerts, sounds, and icon badges. These can be configured in Settings.',
           ),
@@ -99,13 +100,16 @@ class _HomeScreenState extends State<HomeScreen> {
     if (selectedCategory == 'All') {
       return _products;
     }
-    return _products.where((product) => product.type == selectedCategory).toList();
+    return _products
+        .where((product) => product.type == selectedCategory)
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final userService = Provider.of<UserService>(context);
-    
+    final isSeller = userService.userRole == 'SELLER';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -131,10 +135,22 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const NotificationsScreen()),
               );
             },
           ),
+          if (isSeller)
+            IconButton(
+              icon: const Icon(Icons.add_business),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const AddProductScreen()),
+                );
+              },
+            ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.person),
             onSelected: (value) {
@@ -142,14 +158,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 case 'profile':
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const ProfileScreen()),
                   );
                   break;
                 case 'cart':
                   if (userService.isBuyer) {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const CartScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const CartScreen()),
                     );
                   }
                   break;
@@ -157,7 +175,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (userService.isSeller) {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const MyProductsScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const MyProductsScreen()),
                     );
                   }
                   break;
@@ -165,7 +184,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (userService.isSeller) {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const AddProductScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const AddProductScreen()),
                     );
                   }
                   break;
@@ -256,6 +276,36 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            if (isSeller) ...[
+              ListTile(
+                leading: const Icon(Icons.inventory),
+                title: const Text('My Products'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const MyProductsScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.add_business),
+                title: const Text('Add Product'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const AddProductScreen()),
+                  );
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
       body: Column(
         children: [
           Padding(
@@ -267,11 +317,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SearchScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => const SearchScreen()),
                       );
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(8),
@@ -324,7 +376,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       )
                     : GridView.builder(
                         padding: const EdgeInsets.all(16),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           childAspectRatio: 0.75,
                           crossAxisSpacing: 16,
@@ -392,66 +445,91 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-              child: Image.network(
-                product.img,
-                height: 150,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 150,
-                    color: Colors.grey[200],
-                    child: Icon(Icons.image_not_supported, color: Colors.grey[400]),
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '\$${product.price.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        product.available ? 'In Stock' : 'Out of Stock',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: product.available ? Colors.green[600] : Colors.red[600],
+            Expanded(
+              flex: 3,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(8)),
+                child: Image.network(
+                  product.img.isEmpty
+                      ? 'https://placehold.co/600x600/png'
+                      : product.img,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey[400],
+                          size: 40,
                         ),
                       ),
-                      if (product.stock > 0)
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      product.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '\$${product.price.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
                         Text(
-                          '${product.stock} left',
+                          product.available ? 'In Stock' : 'Out of Stock',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: product.available
+                                ? Colors.green[600]
+                                : Colors.red[600],
                           ),
                         ),
-                    ],
-                  ),
-                ],
+                        if (product.stock > 0)
+                          Text(
+                            '${product.stock} left',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
