@@ -5,6 +5,7 @@ class UserService extends ChangeNotifier {
   String? _token;
   String? _userId;
   String? _userRole;
+  String? _email;
   bool _isAuthenticated = false;
   bool _initialized = false;
 
@@ -13,6 +14,7 @@ class UserService extends ChangeNotifier {
   String? get token => _token;
   String? get userId => _userId;
   String? get userRole => _userRole;
+  String? get email => _email;
 
   Future<void> initializeFromStorage() async {
     try {
@@ -20,6 +22,7 @@ class UserService extends ChangeNotifier {
       _token = prefs.getString('token');
       _userId = prefs.getString('userId');
       _userRole = prefs.getString('userRole');
+      _email = prefs.getString('email');
       _isAuthenticated = _token != null;
       _initialized = true;
       notifyListeners();
@@ -34,6 +37,7 @@ class UserService extends ChangeNotifier {
     required String token,
     required String userId,
     required String role,
+    String? email,
   }) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -41,12 +45,16 @@ class UserService extends ChangeNotifier {
     _token = token;
     _userId = userId;
     _userRole = role;
+    _email = email;
     _isAuthenticated = true;
 
     // Store in persistent storage
     await prefs.setString('token', token);
     await prefs.setString('userId', userId);
     await prefs.setString('userRole', role);
+    if (email != null) {
+      await prefs.setString('email', email);
+    }
 
     notifyListeners();
   }
@@ -58,12 +66,14 @@ class UserService extends ChangeNotifier {
     _token = null;
     _userId = null;
     _userRole = null;
+    _email = null;
     _isAuthenticated = false;
 
     // Clear storage
     await prefs.remove('token');
     await prefs.remove('userId');
     await prefs.remove('userRole');
+    await prefs.remove('email');
 
     notifyListeners();
   }
