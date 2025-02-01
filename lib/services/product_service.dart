@@ -50,7 +50,7 @@ class Product {
 }
 
 class ProductService {
-  static const String baseUrl = 'http://localhost:8002';
+  static const String baseUrl = 'https://product-service-qwti.onrender.com';
 
   Future<List<Product>> getProducts() async {
     try {
@@ -58,7 +58,7 @@ class ProductService {
       final response = await http.get(Uri.parse('$baseUrl/'));
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
-      
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         if (data.containsKey('products')) {

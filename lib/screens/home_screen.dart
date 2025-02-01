@@ -425,6 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
               title: product.name,
               imageUrl: product.img,
               price: product.price.toInt(),
+              productId: product.id.toString(),
             ),
           ),
         );

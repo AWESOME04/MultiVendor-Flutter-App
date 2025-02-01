@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../services/user_service.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://localhost:8001';
+  static const String baseUrl = 'https://auth-service-rbc3.onrender.com';
 
   Future<Map<String, dynamic>> signUp({
     required String email,
@@ -129,6 +129,7 @@ class AuthService {
       token: data['token'],
       userId: data['id'].toString(),
       role: data['role'].toString().toUpperCase(),
+      email: data['email']?.toString(),
     );
   }
 }
