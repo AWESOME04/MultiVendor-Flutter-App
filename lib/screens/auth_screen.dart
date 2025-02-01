@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'main_screen.dart';
 import 'login_screen.dart';
 import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../services/user_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -42,13 +44,16 @@ class _AuthScreenState extends State<AuthScreen> {
     });
 
     try {
-      await _authService.signUp(
+      final response = await _authService.signUp(
         email: _emailController.text,
         password: _passwordController.text,
         phone: _phoneController.text,
         role: _selectedRole,
       );
-      
+
+      final userService = Provider.of<UserService>(context, listen: false);
+      await _authService.handleAuthResponse(response, userService);
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -248,7 +253,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => const LoginScreen()),
                       );
                     },
                     child: RichText(
