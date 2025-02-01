@@ -6,20 +6,28 @@ class UserService extends ChangeNotifier {
   String? _userId;
   String? _userRole;
   bool _isAuthenticated = false;
+  bool _initialized = false;
 
+  bool get isInitialized => _initialized;
   bool get isAuthenticated => _isAuthenticated;
   String? get token => _token;
   String? get userId => _userId;
   String? get userRole => _userRole;
 
-  // Initialize from stored credentials
   Future<void> initializeFromStorage() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('token');
-    _userId = prefs.getString('userId');
-    _userRole = prefs.getString('userRole');
-    _isAuthenticated = _token != null;
-    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _token = prefs.getString('token');
+      _userId = prefs.getString('userId');
+      _userRole = prefs.getString('userRole');
+      _isAuthenticated = _token != null;
+      _initialized = true;
+      notifyListeners();
+    } catch (e) {
+      print('Error initializing from storage: $e');
+      _initialized = true;
+      notifyListeners();
+    }
   }
 
   Future<void> setUserData({

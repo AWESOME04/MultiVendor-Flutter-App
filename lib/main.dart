@@ -12,8 +12,8 @@ void main() async {
   await userService.initializeFromStorage();
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => userService,
+    ChangeNotifierProvider.value(
+      value: userService,
       child: const MyApp(),
     ),
   );

@@ -22,6 +22,23 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _errorMessage;
   String _selectedRole = 'BUYER';
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeRole();
+    });
+  }
+
+  void _initializeRole() {
+    final userService = Provider.of<UserService>(context, listen: false);
+    if (userService.userRole != null) {
+      setState(() {
+        _selectedRole = userService.userRole!;
+      });
+    }
+  }
+
   void _showError(String message) {
     setState(() {
       _errorMessage = message;
@@ -67,6 +84,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userService = Provider.of<UserService>(context);
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
