@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'my_orders_screen.dart';
-import 'my_details_screen.dart';
 import 'address_screen.dart';
 import 'payment_method_screen.dart';
 import 'home_screen.dart';
