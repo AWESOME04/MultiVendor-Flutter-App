@@ -9,9 +9,11 @@ class AuthService {
     required String email,
     required String password,
     required String phone,
-    String role = 'BUYER', // Default role
+    String role = 'BUYER',
   }) async {
     try {
+      print('Attempting signup to: $baseUrl/signup');
+
       final response = await http.post(
         Uri.parse('$baseUrl/signup'),
         headers: {'Content-Type': 'application/json'},
@@ -19,20 +21,36 @@ class AuthService {
           'email': email,
           'password': password,
           'phone': phone,
-          'role': role,
+          'role': role.toUpperCase(), // Ensure role is uppercase
         }),
       );
 
+      print('Signup response: ${response.statusCode} - ${response.body}');
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
-        await handleAuthResponse(data, UserService());
-        return data;
+
+        // Create a complete user data object
+        final userData = {
+          'token': data['token'] ?? '',
+          'id': data['id']?.toString() ?? '',
+          'role':
+              (data['role'] as String?)?.toUpperCase() ?? role.toUpperCase(),
+          'email': email,
+        };
+
+        await handleAuthResponse(userData, UserService());
+        return userData;
       } else {
-        final data = jsonDecode(response.body);
-        throw data['message'] ?? 'Sign up failed';
+        final error = jsonDecode(response.body);
+        throw error['message'] ?? 'Sign up failed';
       }
     } catch (e) {
-      throw e.toString();
+      print('Signup error details: $e');
+      if (e.toString().contains('<!DOCTYPE')) {
+        throw 'Server error. Please try again later.';
+      }
+      rethrow;
     }
   }
 
@@ -41,6 +59,8 @@ class AuthService {
     required String password,
   }) async {
     try {
+      print('Attempting login to: $baseUrl/login');
+
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
         headers: {'Content-Type': 'application/json'},
@@ -50,16 +70,30 @@ class AuthService {
         }),
       );
 
+      print('Login response: ${response.statusCode} - ${response.body}');
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
-        await handleAuthResponse(data, UserService());
+
+        // Ensure role is uppercase for consistency
+        final role = (data['role'] as String?)?.toUpperCase() ?? 'BUYER';
+
+        await handleAuthResponse({
+          ...data,
+          'role': role,
+        }, UserService());
+
         return data;
       } else {
-        final data = jsonDecode(response.body);
-        throw data['message'] ?? 'Login failed';
+        final error = jsonDecode(response.body);
+        throw error['message'] ?? 'Failed to login';
       }
     } catch (e) {
-      throw e.toString();
+      print('Login error details: $e');
+      if (e.toString().contains('<!DOCTYPE')) {
+        throw 'Server error. Please try again later.';
+      }
+      rethrow;
     }
   }
 
