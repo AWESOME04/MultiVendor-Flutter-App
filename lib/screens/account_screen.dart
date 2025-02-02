@@ -132,15 +132,15 @@ class AccountScreen extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const MyOrdersScreen()),
             ),
           ),
-          _buildMenuItem(
-            context,
-            'My Details',
-            Icons.person_outline,
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MyDetailsScreen()),
-            ),
-          ),
+          // _buildMenuItem(
+          //   context,
+          //   'My Details',
+          //   Icons.person_outline,
+          //   () => Navigator.push(
+          //     context,
+          //     MaterialPageRoute(builder: (context) => const MyDetailsScreen()),
+          //   ),
+          // ),
           _buildMenuItem(
             context,
             'Address Book',
@@ -156,7 +156,8 @@ class AccountScreen extends StatelessWidget {
             Icons.credit_card_outlined,
             () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const PaymentMethodScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const PaymentMethodScreen()),
             ),
           ),
           const SizedBox(height: 24),

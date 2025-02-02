@@ -10,6 +10,9 @@ import 'my_products_screen.dart';
 import 'add_product_screen.dart';
 import 'auth_screen.dart';
 import 'package:provider/provider.dart';
+import '../services/cart_service.dart';
+import '../services/cart_notifier.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,10 +31,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadProducts();
-    // Show notification permission dialog after a short delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _showNotificationDialog();
-    });
+    _loadCartCount();
+    _checkNotificationPrompt();
   }
 
   Future<void> _loadProducts() async {
@@ -51,6 +52,34 @@ class _HomeScreenState extends State<HomeScreen> {
           SnackBar(content: Text('Error loading products: ${e.toString()}')),
         );
       }
+    }
+  }
+
+  Future<void> _loadCartCount() async {
+    try {
+      final userService = Provider.of<UserService>(context, listen: false);
+      final cartService = CartService(userService);
+      final cartData = await cartService.getCart();
+
+      if (!mounted) return;
+
+      final cartNotifier = Provider.of<CartNotifier>(context, listen: false);
+      cartNotifier.updateCount((cartData['items'] as List).length);
+    } catch (e) {
+      print('Error loading cart count: $e');
+    }
+  }
+
+  Future<void> _checkNotificationPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasShownNotification = prefs.getBool('hasShownNotification') ?? false;
+
+    if (!hasShownNotification && mounted) {
+      await prefs.setBool('hasShownNotification', true);
+      // Show notification dialog after a short delay
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _showNotificationDialog();
+      });
     }
   }
 
@@ -107,194 +136,70 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userService = Provider.of<UserService>(context);
-    final isSeller = userService.userRole == 'SELLER';
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'SHOP STOCK',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
-          ),
-        ),
-        actions: [
-          if (userService.isBuyer)
-            IconButton(
-              icon: const Icon(Icons.shopping_cart),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CartScreen()),
-                );
-              },
+    return Consumer<UserService>(
+      builder: (context, userService, _) => Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'SHOP STOCK',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
             ),
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const NotificationsScreen()),
-              );
-            },
           ),
-          if (isSeller)
+          automaticallyImplyLeading: false,
+          actions: [
+            if (userService.isBuyer)
+              Consumer<CartNotifier>(
+                builder: (context, cartNotifier, child) => Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.shopping_cart),
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/cart')
+                            .then((_) => _loadCartCount());
+                      },
+                    ),
+                    if (cartNotifier.cartItemCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            cartNotifier.cartItemCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             IconButton(
-              icon: const Icon(Icons.add_business),
+              icon: const Icon(Icons.notifications),
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const AddProductScreen()),
+                      builder: (context) => const NotificationsScreen()),
                 );
               },
             ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.person),
-            onSelected: (value) {
-              switch (value) {
-                case 'profile':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const ProfileScreen()),
-                  );
-                  break;
-                case 'cart':
-                  if (userService.isBuyer) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const CartScreen()),
-                    );
-                  }
-                  break;
-                case 'myProducts':
-                  if (userService.isSeller) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const MyProductsScreen()),
-                    );
-                  }
-                  break;
-                case 'addProduct':
-                  if (userService.isSeller) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const AddProductScreen()),
-                    );
-                  }
-                  break;
-                case 'logout':
-                  _handleLogout();
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              if (userService.isBuyer) {
-                return [
-                  const PopupMenuItem<String>(
-                    value: 'profile',
-                    child: Row(
-                      children: [
-                        Icon(Icons.person_outline),
-                        SizedBox(width: 8),
-                        Text('View Profile'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'cart',
-                    child: Row(
-                      children: [
-                        Icon(Icons.shopping_cart_outlined),
-                        SizedBox(width: 8),
-                        Text('Cart'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout),
-                        SizedBox(width: 8),
-                        Text('Logout'),
-                      ],
-                    ),
-                  ),
-                ];
-              } else {
-                return [
-                  const PopupMenuItem<String>(
-                    value: 'profile',
-                    child: Row(
-                      children: [
-                        Icon(Icons.person_outline),
-                        SizedBox(width: 8),
-                        Text('View Profile'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'myProducts',
-                    child: Row(
-                      children: [
-                        Icon(Icons.inventory_2_outlined),
-                        SizedBox(width: 8),
-                        Text('My Products'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'addProduct',
-                    child: Row(
-                      children: [
-                        Icon(Icons.add_box_outlined),
-                        SizedBox(width: 8),
-                        Text('Add Product'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout),
-                        SizedBox(width: 8),
-                        Text('Logout'),
-                      ],
-                    ),
-                  ),
-                ];
-              }
-            },
-          ),
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            if (isSeller) ...[
-              ListTile(
-                leading: const Icon(Icons.inventory),
-                title: const Text('My Products'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const MyProductsScreen()),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.add_business),
-                title: const Text('Add Product'),
-                onTap: () {
+            if (userService.isSeller)
+              IconButton(
+                icon: const Icon(Icons.add_business),
+                onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -302,95 +207,247 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-            ],
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.person),
+              onSelected: (value) {
+                switch (value) {
+                  case 'profile':
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const ProfileScreen()),
+                    );
+                    break;
+                  case 'cart':
+                    if (userService.isBuyer) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const SearchScreen()),
+                            builder: (context) => const CartScreen()),
                       );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                    }
+                    break;
+                  case 'myProducts':
+                    if (userService.isSeller) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MyProductsScreen()),
+                      );
+                    }
+                    break;
+                  case 'addProduct':
+                    if (userService.isSeller) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const AddProductScreen()),
+                      );
+                    }
+                    break;
+                  case 'logout':
+                    _handleLogout();
+                    break;
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                if (userService.isBuyer) {
+                  return [
+                    const PopupMenuItem<String>(
+                      value: 'profile',
                       child: Row(
                         children: [
-                          Icon(Icons.search, color: Colors.grey[600]),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Search products',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 16,
-                            ),
-                          ),
+                          Icon(Icons.person_outline),
+                          SizedBox(width: 8),
+                          Text('View Profile'),
                         ],
                       ),
                     ),
-                  ),
+                    const PopupMenuItem<String>(
+                      value: 'cart',
+                      child: Row(
+                        children: [
+                          Icon(Icons.shopping_cart_outlined),
+                          SizedBox(width: 8),
+                          Text('Cart'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'logout',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout),
+                          SizedBox(width: 8),
+                          Text('Logout'),
+                        ],
+                      ),
+                    ),
+                  ];
+                } else {
+                  return [
+                    const PopupMenuItem<String>(
+                      value: 'profile',
+                      child: Row(
+                        children: [
+                          Icon(Icons.person_outline),
+                          SizedBox(width: 8),
+                          Text('View Profile'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'myProducts',
+                      child: Row(
+                        children: [
+                          Icon(Icons.inventory_2_outlined),
+                          SizedBox(width: 8),
+                          Text('My Products'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'addProduct',
+                      child: Row(
+                        children: [
+                          Icon(Icons.add_box_outlined),
+                          SizedBox(width: 8),
+                          Text('Add Product'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'logout',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout),
+                          SizedBox(width: 8),
+                          Text('Logout'),
+                        ],
+                      ),
+                    ),
+                  ];
+                }
+              },
+            ),
+          ],
+        ),
+        drawer: Drawer(
+          child: ListView(
+            children: [
+              if (userService.isSeller) ...[
+                ListTile(
+                  leading: const Icon(Icons.inventory),
+                  title: const Text('My Products'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const MyProductsScreen()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.add_business),
+                  title: const Text('Add Product'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const AddProductScreen()),
+                    );
+                  },
                 ),
               ],
-            ),
+            ],
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _buildCategoryChip('All'),
-                _buildCategoryChip('Electronics'),
-                _buildCategoryChip('Fashion'),
-                _buildCategoryChip('Home'),
-                _buildCategoryChip('Beauty'),
-                _buildCategoryChip('Sports'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : filteredProducts.isEmpty
-                    ? Center(
-                        child: Text(
-                          selectedCategory == 'All'
-                              ? 'No products available'
-                              : 'No products in $selectedCategory',
-                          style: const TextStyle(fontSize: 16),
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const SearchScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      )
-                    : GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.75,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
+                        child: Row(
+                          children: [
+                            Icon(Icons.search, color: Colors.grey[600]),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Search products',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
                         ),
-                        itemCount: filteredProducts.length,
-                        itemBuilder: (context, index) {
-                          final product = filteredProducts[index];
-                          return _buildProductCard(product);
-                        },
                       ),
-          ),
-        ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _buildCategoryChip('All'),
+                  _buildCategoryChip('Electronics'),
+                  _buildCategoryChip('Fashion'),
+                  _buildCategoryChip('Home'),
+                  _buildCategoryChip('Beauty'),
+                  _buildCategoryChip('Sports'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : filteredProducts.isEmpty
+                      ? Center(
+                          child: Text(
+                            selectedCategory == 'All'
+                                ? 'No products available'
+                                : 'No products in $selectedCategory',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        )
+                      : GridView.builder(
+                          padding: const EdgeInsets.all(16),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.75,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                          itemCount: filteredProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = filteredProducts[index];
+                            return _buildProductCard(product);
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }

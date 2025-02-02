@@ -24,7 +24,6 @@ class CartService {
         throw 'User not authenticated';
       }
 
-      // Simplified request body to match React implementation
       final requestBody = {
         'productId': productId,
         'name': name,
@@ -96,7 +95,6 @@ class CartService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
 
-        // Handle different response structures
         if (data is Map) {
           if (data.containsKey('items')) {
             return {
