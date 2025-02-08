@@ -167,7 +167,7 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
                       AspectRatio(
                         aspectRatio: 16 / 9,
                         child: Image.network(
-                          product['img'] ?? '/placeholder.png',
+                          product['img'] ?? 'https://placehold.co/600x400',
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
