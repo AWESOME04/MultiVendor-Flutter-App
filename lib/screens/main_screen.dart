@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
-import 'search_screen.dart';
 import 'cart_screen.dart';
-import 'account_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/user_service.dart';
 import 'my_products_screen.dart';

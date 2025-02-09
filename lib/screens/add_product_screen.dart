@@ -4,7 +4,6 @@ import '../services/user_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
-import 'package:universal_html/html.dart' as html;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
 import 'package:http_parser/http_parser.dart';
