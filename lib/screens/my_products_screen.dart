@@ -4,6 +4,7 @@ import '../services/user_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'add_product_screen.dart';
+import '../widgets/edit_product_modal.dart';
 
 class MyProductsScreen extends StatefulWidget {
   const MyProductsScreen({super.key});
@@ -81,25 +82,124 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
 
       final response = await http.delete(
         Uri.parse(
-            'https://product-service-qwti.onrender.com/product/delete/$productId'),
+            'https://product-service-qwti.onrender.com/product/$productId'),
         headers: {
           'Authorization': 'Bearer ${userService.token}',
-          'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
       );
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product deleted successfully')),
-        );
-        _fetchSellerProducts(); // Refresh the list
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Product deleted successfully')),
+          );
+          setState(() {
+            _products.removeWhere((product) => product['id'] == productId);
+          });
+        }
       } else {
         throw 'Failed to delete product: ${response.statusCode}';
       }
     } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete product: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showDeleteConfirmation(Map<String, dynamic> product) async {
+    final productId = product['id'] ?? product['_id'];
+    if (productId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete product: $e')),
+        const SnackBar(content: Text('Cannot delete: Product ID is missing')),
       );
+      return;
+    }
+
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Product'),
+          content: Text(
+            'Are you sure you want to delete ${product['name']}? This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.red),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteProduct(productId.toString());
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _updateProduct(Map<String, dynamic> updatedProduct) async {
+    try {
+      final userService = Provider.of<UserService>(context, listen: false);
+      final productId = updatedProduct['id'] ?? updatedProduct['_id'];
+
+      if (productId == null) {
+        throw 'Product ID is missing';
+      }
+
+      final response = await http.put(
+        Uri.parse(
+            'https://product-service-qwti.onrender.com/product/$productId'),
+        headers: {
+          'Authorization': 'Bearer ${userService.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'name': updatedProduct['name'],
+          'desc': updatedProduct['desc'],
+          'price': updatedProduct['price'],
+          'stock': updatedProduct['stock'],
+          'available': updatedProduct['available'],
+          'type': updatedProduct['type'], // Add type if needed
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Product updated successfully')),
+          );
+          // Update local state
+          final updatedProducts = _products.map((product) {
+            if (product['id'] == productId || product['_id'] == productId) {
+              return {...product, ...updatedProduct};
+            }
+            return product;
+          }).toList();
+
+          setState(() {
+            _products = updatedProducts;
+          });
+        }
+      } else {
+        throw 'Failed to update product: ${response.statusCode}';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update product: $e')),
+        );
+      }
     }
   }
 
@@ -230,11 +330,11 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
                                 IconButton(
                                   icon: const Icon(Icons.edit),
                                   onPressed: () {
-                                    // TODO: Implement edit functionality
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Edit functionality coming soon'),
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => EditProductModal(
+                                        product: product,
+                                        onSubmit: _updateProduct,
                                       ),
                                     );
                                   },
@@ -242,7 +342,7 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
                                 IconButton(
                                   icon: const Icon(Icons.delete),
                                   onPressed: () =>
-                                      _deleteProduct(product['_id']),
+                                      _showDeleteConfirmation(product),
                                 ),
                               ],
                             ),

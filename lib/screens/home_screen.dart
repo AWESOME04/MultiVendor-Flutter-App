@@ -13,6 +13,8 @@ import 'package:provider/provider.dart';
 import '../services/cart_service.dart';
 import '../services/cart_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final ProductService _productService = ProductService();
   List<Product> _products = [];
   bool _isLoading = true;
+  List<dynamic> _filteredProducts = [];
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -33,6 +37,13 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadProducts();
     _loadCartCount();
     _checkNotificationPrompt();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProducts() async {
@@ -40,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final products = await _productService.getProducts();
       setState(() {
         _products = products;
+        _filteredProducts = products;
         _isLoading = false;
       });
     } catch (e) {
@@ -134,20 +146,43 @@ class _HomeScreenState extends State<HomeScreen> {
         .toList();
   }
 
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProducts = _products;
+      } else {
+        _filteredProducts = _products.where((product) {
+          final productName = product.name.toString().toLowerCase();
+          return productName.contains(query);
+        }).toList();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<UserService>(
       builder: (context, userService, _) => Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'SHOP STOCK',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
+          title: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search products...',
+              border: InputBorder.none,
+              hintStyle: TextStyle(color: Colors.grey[400]),
+              prefixIcon: const Icon(Icons.search, color: Colors.grey),
             ),
+            style: const TextStyle(color: Colors.black),
           ),
-          automaticallyImplyLeading: false,
           actions: [
+            if (_searchController.text.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                },
+              ),
             if (userService.isBuyer)
               Consumer<CartNotifier>(
                 builder: (context, cartNotifier, child) => Stack(
@@ -364,45 +399,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         body: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const SearchScreen()),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.search, color: Colors.grey[600]),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Search products',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -421,13 +417,13 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : filteredProducts.isEmpty
+                  : _filteredProducts.isEmpty
                       ? Center(
                           child: Text(
-                            selectedCategory == 'All'
+                            _searchController.text.isEmpty
                                 ? 'No products available'
-                                : 'No products in $selectedCategory',
-                            style: const TextStyle(fontSize: 16),
+                                : 'No products found',
+                            style: const TextStyle(fontSize: 18),
                           ),
                         )
                       : GridView.builder(
@@ -439,9 +435,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
                           ),
-                          itemCount: filteredProducts.length,
+                          itemCount: _filteredProducts.length,
                           itemBuilder: (context, index) {
-                            final product = filteredProducts[index];
+                            final product = _filteredProducts[index];
                             return _buildProductCard(product);
                           },
                         ),

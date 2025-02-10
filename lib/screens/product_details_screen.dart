@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/user_service.dart';
 import '../services/cart_service.dart';
+import '../services/cart_notifier.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final String title;
@@ -25,21 +26,33 @@ class ProductDetailsScreen extends StatefulWidget {
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   bool _isAddingToCart = false;
+  bool _isInCart = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfInCart();
+  }
+
+  Future<void> _checkIfInCart() async {
+    final cartService =
+        CartService(Provider.of<UserService>(context, listen: false));
+    final isInCart = await cartService.isProductInCart(widget.productId);
+    setState(() {
+      _isInCart = isInCart;
+    });
+  }
 
   Future<void> _addToCart(CartService cartService) async {
-    if (_isAddingToCart) return;
+    if (_isInCart) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Item is already in your cart')),
+      );
+      return;
+    }
 
-    setState(() {
-      _isAddingToCart = true;
-    });
-
+    setState(() => _isAddingToCart = true);
     try {
-      print('Adding product to cart:');
-      print('- Product ID: ${widget.productId}');
-      print('- Title: ${widget.title}');
-      print('- Price: ${widget.price}');
-      print('- Image: ${widget.imageUrl}');
-
       await cartService.addToCart(
         productId: widget.productId,
         name: widget.title,
@@ -47,61 +60,21 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         image: widget.imageUrl,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Added to cart successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error in _addToCart: $e');
-      if (mounted) {
-        String errorMessage;
-        if (e.toString().contains('starting up')) {
-          errorMessage =
-              'Server is starting up. Please wait a moment and try again.';
-        } else if (e.toString().contains('Network error') ||
-            e.toString().contains('Failed to connect')) {
-          errorMessage =
-              'Cannot connect to server. Please check your connection.';
-        } else if (e.toString().contains('timed out')) {
-          errorMessage = 'Request timed out. Please try again.';
-        } else if (e.toString().contains('Authentication failed')) {
-          errorMessage = 'Please log in again to continue.';
-        } else {
-          errorMessage = 'Failed to add to cart: ${e.toString()}';
-        }
+      Provider.of<CartNotifier>(context, listen: false).updateCount(
+          (Provider.of<CartNotifier>(context, listen: false).cartItemCount +
+              1));
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            action: e.toString().contains('Authentication failed')
-                ? SnackBarAction(
-                    label: 'Login',
-                    textColor: Colors.white,
-                    onPressed: () {
-                      Navigator.of(context).pushReplacementNamed('/login');
-                    },
-                  )
-                : e.toString().contains('starting up')
-                    ? SnackBarAction(
-                        label: 'Retry',
-                        textColor: Colors.white,
-                        onPressed: () => _addToCart(cartService),
-                      )
-                    : null,
-          ),
-        );
-      }
+      setState(() => _isInCart = true);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Added to cart')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isAddingToCart = false;
-        });
-      }
+      setState(() => _isAddingToCart = false);
     }
   }
 

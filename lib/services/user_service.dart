@@ -94,9 +94,9 @@ class UserService extends ChangeNotifier {
 
     // Normalize and validate data
     final normalizedRole = role.toUpperCase();
-    if (normalizedRole.isEmpty || userId.isEmpty || token.isEmpty) {
-      throw 'Invalid user data provided';
-    }
+    // if (normalizedRole.isEmpty || userId.isEmpty || token.isEmpty) {
+    //   throw 'Invalid user data provided';
+    // }
 
     // Update memory
     _token = token;
