@@ -5,43 +5,43 @@ import '../services/user_service.dart';
 
 class CartItem extends StatelessWidget {
   final Map<String, dynamic> item;
-  final VoidCallback onQuantityChanged;
-  final VoidCallback onRemoved;
+  final Function(String) onRemove;
+  final Function(String, int) onQuantityChange;
 
   const CartItem({
-    super.key,
+    Key? key,
     required this.item,
-    required this.onQuantityChanged,
-    required this.onRemoved,
-  });
+    required this.onRemove,
+    required this.onQuantityChange,
+  }) : super(key: key);
 
-  Future<void> _updateQuantity(BuildContext context, int change) async {
-    try {
-      final userService = Provider.of<UserService>(context, listen: false);
-      final cartService = CartService(userService);
-      await cartService.updateQuantity(
-        item['productId'],
-        (item['quantity'] as int) + change,
-      );
-      onQuantityChanged();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update quantity: ${e.toString()}')),
-      );
-    }
-  }
-
-  Future<void> _removeItem(BuildContext context) async {
-    try {
-      final userService = Provider.of<UserService>(context, listen: false);
-      final cartService = CartService(userService);
-      await cartService.removeFromCart(item['productId']);
-      onRemoved();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to remove item: ${e.toString()}')),
-      );
-    }
+  Future<void> _showDeleteConfirmation(BuildContext context) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Remove Item'),
+          content: Text(
+              'Are you sure you want to remove ${item['name']} from your cart?'),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text(
+                'Remove',
+                style: TextStyle(color: Colors.red),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                onRemove(item['productId']);
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -83,14 +83,27 @@ class CartItem extends StatelessWidget {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.remove),
-                        onPressed: item['quantity'] > 1
-                            ? () => _updateQuantity(context, -1)
+                        onPressed: (item['quantity'] ?? 0) > 1
+                            ? () => onQuantityChange(
+                                item['productId'], (item['quantity'] ?? 0) - 1)
                             : null,
+                        style: ButtonStyle(
+                          foregroundColor:
+                              MaterialStateProperty.resolveWith<Color>(
+                            (states) {
+                              if (states.contains(MaterialState.disabled)) {
+                                return Colors.grey;
+                              }
+                              return Colors.black;
+                            },
+                          ),
+                        ),
                       ),
-                      Text('${item['quantity'] ?? 1}'),
+                      Text('${item['quantity'] ?? 0}'),
                       IconButton(
                         icon: const Icon(Icons.add),
-                        onPressed: () => _updateQuantity(context, 1),
+                        onPressed: () => onQuantityChange(
+                            item['productId'], (item['quantity'] ?? 0) + 1),
                       ),
                     ],
                   ),
@@ -98,8 +111,9 @@ class CartItem extends StatelessWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () => _removeItem(context),
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () => _showDeleteConfirmation(context),
+              color: Colors.red,
             ),
           ],
         ),

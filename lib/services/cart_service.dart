@@ -156,29 +156,43 @@ class CartService {
     }
   }
 
-  Future<void> updateQuantity(String productId, int quantity) async {
+  Future<Map<String, dynamic>> updateCartQuantity({
+    required String productId,
+    required int quantity,
+  }) async {
     try {
       final token = _userService.token;
-      if (token == null) {
+      final userId = _userService.userId;
+
+      if (token == null || userId == null) {
         throw 'User not authenticated';
       }
 
       final response = await http.patch(
         Uri.parse('$baseUrl/cart/$productId'),
         headers: {
-          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
         },
         body: jsonEncode({'quantity': quantity}),
       );
 
-      if (response.statusCode >= 400) {
-        final error = jsonDecode(response.body);
-        throw error['message'] ?? 'Failed to update quantity';
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonDecode(response.body);
+      } else {
+        throw 'Failed to update quantity';
       }
     } catch (e) {
-      print('Error updating quantity: $e');
-      rethrow;
+      throw 'Error updating cart quantity: $e';
+    }
+  }
+
+  Future<bool> isProductInCart(String productId) async {
+    try {
+      final cart = await getCart();
+      return cart['items'].any((item) => item['productId'] == productId);
+    } catch (e) {
+      return false;
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/cart_service.dart';
 import '../services/user_service.dart';
+import '../services/payment_service.dart';
 import '../widgets/cart_item.dart';
 import '../widgets/empty_cart.dart';
 
@@ -47,30 +48,28 @@ class _CartScreenState extends State<CartScreen> {
     if (!mounted) return;
 
     try {
-      final userService = Provider.of<UserService>(context, listen: false);
-      final cartService = CartService(userService);
+      setState(() => _isLoading = true);
+
+      final cartService =
+          CartService(Provider.of<UserService>(context, listen: false));
       final cartData = await cartService.getCart();
 
       if (!mounted) return;
 
       setState(() {
         _cartItems = List<Map<String, dynamic>>.from(cartData['items'] ?? []);
-        _total = (cartData['total'] ?? 0).toDouble();
-        _isLoading = false;
+        _total = cartData['total']?.toDouble() ?? 0.0;
       });
     } catch (e) {
-      print('Error loading cart: $e');
-      if (!mounted) return;
-
-      if (e.toString().contains('User not authenticated')) {
-        Navigator.of(context).pushReplacementNamed('/login');
-        return;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load cart: ${e.toString()}')),
+        );
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load cart: ${e.toString()}')),
-      );
-      setState(() => _isLoading = false);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -92,31 +91,47 @@ class _CartScreenState extends State<CartScreen> {
     setState(() => _isCheckingOut = true);
     try {
       final userService = Provider.of<UserService>(context, listen: false);
-      if (!userService.isAuthenticated) {
+      if (!userService.isAuthenticated || userService.email == null) {
         Navigator.of(context).pushReplacementNamed('/login');
         return;
       }
 
-      final cartService = CartService(userService);
-      await cartService.checkout(_phoneController.text);
+      final success = await PaystackService.processPayment(
+        context: context,
+        email: userService.email!,
+        amount: _total,
+        phone: _phoneController.text,
+        onSuccess: () async {
+          // Process order
+          final cartService = CartService(userService);
+          await cartService.checkout(_phoneController.text);
 
-      // Clear cart after successful checkout
-      setState(() {
-        _cartItems = [];
-        _total = 0;
-      });
+          setState(() {
+            _cartItems = [];
+            _total = 0;
+          });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Order placed successfully!')),
-        );
-        Navigator.of(context).pushReplacementNamed('/');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Order placed successfully!')),
+            );
+            Navigator.of(context).pushReplacementNamed('/');
+          }
+        },
+        onCancel: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Payment cancelled')),
+          );
+        },
+      );
+
+      if (!success) {
+        throw 'Payment failed';
       }
     } catch (e) {
-      print('Checkout error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to checkout: ${e.toString()}')),
+          SnackBar(content: Text('Checkout failed: ${e.toString()}')),
         );
       }
     } finally {
@@ -124,6 +139,62 @@ class _CartScreenState extends State<CartScreen> {
         setState(() => _isCheckingOut = false);
       }
     }
+  }
+
+  Future<void> _updateQuantity(String productId, int newQuantity) async {
+    if (newQuantity < 1) return;
+
+    try {
+      setState(() => _isLoading = true);
+
+      final cartService =
+          CartService(Provider.of<UserService>(context, listen: false));
+      await cartService.updateCartQuantity(
+        productId: productId,
+        quantity: newQuantity,
+      );
+
+      // Update local state immediately
+      final itemIndex =
+          _cartItems.indexWhere((item) => item['productId'] == productId);
+      if (itemIndex != -1) {
+        setState(() {
+          _cartItems[itemIndex]['quantity'] = newQuantity;
+          // Recalculate total
+          _total = _cartItems.fold(0,
+              (sum, item) => sum + (item['price'] * (item['quantity'] ?? 1)));
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update quantity: ${e.toString()}')),
+      );
+      // Reload cart to ensure consistency
+      await _loadCart();
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Widget _buildQuantityControls(Map<String, dynamic> item) {
+    return Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.remove),
+          onPressed: item['quantity'] > 1
+              ? () => _updateQuantity(item['productId'], item['quantity'] - 1)
+              : null,
+        ),
+        Text('${item['quantity']}'),
+        IconButton(
+          icon: const Icon(Icons.add),
+          onPressed: () =>
+              _updateQuantity(item['productId'], item['quantity'] + 1),
+        ),
+      ],
+    );
   }
 
   @override
@@ -153,8 +224,23 @@ class _CartScreenState extends State<CartScreen> {
                 final item = _cartItems[index];
                 return CartItem(
                   item: item,
-                  onQuantityChanged: _loadCart,
-                  onRemoved: _loadCart,
+                  onRemove: (productId) async {
+                    try {
+                      final cartService = CartService(
+                          Provider.of<UserService>(context, listen: false));
+                      await cartService.removeFromCart(productId);
+                      _loadCart(); // Refresh cart after removal
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(e.toString())),
+                        );
+                      }
+                    }
+                  },
+                  onQuantityChange: (productId, quantity) async {
+                    await _updateQuantity(productId, quantity);
+                  },
                 );
               },
             ),
